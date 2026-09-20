@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>實驗室 · 打卡模板</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4C8B67">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F1F7F0; --surface:#FFFFFF; --surface-soft:#EAF4E8;
+    --ink:#243228; --ink-soft:#6E8577;
+    --primary:#4C8B67; --primary-deep:#33624A; --primary-tint:#DCEEDD;
+    --accent:#B98A5E; --success:#3E7A54; --success-tint:#DEF0E1;
+    --border:#D9E8D7; --shadow:0 8px 24px rgba(36,50,40,.08);
+    --radius-lg:20px; --radius-md:14px; --radius-sm:10px;
+    --font-display:'Noto Serif SC','Songti SC','SimSun',serif;
+    --font-body:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+    --quad-1:#6FA37C; --quad-2:#8CB26E; --quad-3:#4F8F6D; --quad-4:#5B9E86;
+  }
+  *{box-sizing:border-box;}
+  html, body{height:100%; margin:0; overflow:hidden;}
+  body{background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased;}
+
+  .app{display:flex; height:100vh; overflow:hidden;}
+
+  .top-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .rail-toggle{border:none; background:var(--surface-soft); border-radius:10px; width:34px; height:34px; font-size:16px; color:var(--ink); cursor:pointer; flex-shrink:0;}
+
+  .sidebar-backdrop{position:fixed; inset:0; background:rgba(20,25,20,.4); z-index:48; opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .sidebar-backdrop.show{opacity:1; pointer-events:auto;}
+  .sidebar-drawer{position:fixed; top:0; left:0; height:100vh; width:190px; background:var(--surface); border-right:1px solid var(--border); z-index:50; padding:14px 10px; display:flex; flex-direction:column; gap:2px; box-shadow:var(--shadow); transform:translateX(-100%); transition:transform .25s ease;}
+  .sidebar-drawer.show{transform:translateX(0);}
+  .drawer-head{display:flex; justify-content:space-between; align-items:center; padding:0 6px 12px;}
+  .drawer-head span{font-family:var(--font-display); font-weight:700; font-size:15px;}
+  .drawer-head button{border:none; background:none; font-size:18px; color:var(--ink-soft); cursor:pointer;}
+  .side-item{border:none; background:none; cursor:pointer; color:var(--ink-soft); border-radius:10px; padding:11px 12px; width:100%; text-align:left; font-size:13.5px; font-family:var(--font-body);}
+  .side-item.active{background:var(--primary-tint); color:var(--primary-deep); font-weight:700;}
+
+  main.main-area{flex:1; height:100vh; overflow-y:auto; overflow-x:hidden; padding:14px 16px 26px;}
+  .page-brand{font-family:var(--font-display); font-weight:700; font-size:14px; color:var(--ink-soft);}
+  .view{display:none; max-width:520px; margin:0 auto;}
+  .view.active{display:block;}
+
+  .empty-state{background:var(--surface); border-radius:var(--radius-lg); padding:30px 20px; text-align:center; box-shadow:var(--shadow); margin-top:14px;}
+  .empty-state p{color:var(--ink-soft); font-size:13.5px; line-height:1.7; margin:8px 0 16px;}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:var(--font-body); font-size:14px; font-weight:500; cursor:pointer; border:none; border-radius:999px; padding:11px 20px; color:#fff; background:var(--primary); transition:transform .12s ease;}
+  .btn:active{transform:scale(.96);}
+  .btn.secondary{background:var(--surface-soft); color:var(--ink); border:1px solid var(--border);}
+  .btn.danger{background:transparent; color:var(--accent); border:1px solid var(--accent); padding:7px 14px; font-size:12.5px;}
+  .btn.ghost{background:transparent; color:var(--primary); border:1px solid var(--primary); padding:7px 14px; font-size:12.5px;}
+  .btn.block{width:100%;}
+  .btn.small{padding:7px 12px; font-size:12.5px;}
+
+  .routine-intro{font-size:12px; color:var(--ink-soft); margin:2px 4px 10px; line-height:1.6;}
+  .routine-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:0 4px;}
+  .routine-card{border-radius:15px; padding:9px; color:#fff; display:flex; flex-direction:column; min-height:128px; min-width:0; box-shadow:var(--shadow);}
+  .rc-name{width:100%; background:rgba(255,255,255,.18); border:none; border-radius:7px; color:#fff; font-weight:700; font-size:12px; font-family:var(--font-body); padding:5px 7px; margin-bottom:2px;}
+  .rc-name::placeholder{color:rgba(255,255,255,.75);}
+  .rc-time{width:100%; background:transparent; border:none; color:rgba(255,255,255,.85); font-size:9.5px; font-family:var(--font-body); padding:1px 7px 4px;}
+  .rc-time::placeholder{color:rgba(255,255,255,.55);}
+  .rc-head-row{display:flex; justify-content:space-between; align-items:flex-start; gap:5px;}
+  .rc-head-row > div{min-width:0;}
+  .rc-badge{background:rgba(255,255,255,.28); border-radius:999px; padding:2px 7px; font-size:10px; font-weight:700; margin-top:4px; flex-shrink:0;}
+  .rc-items{display:flex; flex-direction:column; gap:4px; flex:1; overflow-y:auto; margin-top:4px;}
+  .rc-item{display:flex; align-items:flex-start; gap:4px; font-size:11px; touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  .rc-item.dragging{opacity:.85; box-shadow:0 6px 14px rgba(0,0,0,.18); border-radius:8px;}
+  .rc-item-inner{display:flex; align-items:flex-start; gap:5px; flex:1; min-width:0; cursor:pointer;}
+  .rc-item input[type="checkbox"]{
+    appearance:none; -webkit-appearance:none;
+    width:14px; height:14px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.85); background:transparent;
+    flex-shrink:0; cursor:pointer; position:relative;
+  }
+  .rc-item input[type="checkbox"]:checked{ background:#fff; border-color:#fff; }
+  .rc-item input[type="checkbox"]:checked::after{
+    content:""; position:absolute; left:3.5px; top:1px; width:4px; height:7px;
+    border:solid #2F4A3A; border-width:0 1.6px 1.6px 0; transform:rotate(40deg);
+  }
+  .rc-item span{flex:1;}
+  .rc-item.checked span{text-decoration:line-through; opacity:.7;}
+  .rc-item button{background:none; border:none; color:rgba(255,255,255,.7); font-size:13px; cursor:pointer; padding:0 2px; flex-shrink:0;}
+  .rc-add-row{display:flex; gap:5px; margin-top:6px;}
+  .rc-add-row input{flex:1; min-width:0; background:rgba(255,255,255,.18); border:none; border-radius:7px; color:#fff; font-size:10.5px; padding:5px 7px; font-family:var(--font-body);}
+  .rc-add-row input::placeholder{color:rgba(255,255,255,.6);}
+  .rc-add-row button{background:rgba(255,255,255,.28); border:none; border-radius:7px; color:#fff; width:22px; font-size:13px; cursor:pointer; flex-shrink:0;}
+
+  .checkin-header{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;}
+  select#activitySelect{font-family:var(--font-body); font-size:13px; color:var(--ink-soft); background:var(--surface-soft); border:1px solid var(--border); border-radius:999px; padding:8px 10px; max-width:56%;}
+  .new-wrap{position:relative; flex-shrink:0;}
+  .new-popover{position:absolute; top:calc(100% + 8px); right:0; width:260px; max-width:80vw; background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:14px; display:none; z-index:20;}
+  .new-popover.show{display:block;}
+  .checkin-card{background:var(--surface); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow);}
+  .checkin-title{font-family:var(--font-display); font-size:19px; font-weight:700;}
+  .checkin-sub{color:var(--ink-soft); font-size:12.5px; margin-top:4px;}
+  .progress-track{height:7px; background:var(--primary-tint); border-radius:99px; margin:16px 0 9px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--primary); border-radius:99px; transition:width .3s ease;}
+  .progress-days{display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;}
+  .day-dot{flex:1; min-width:22px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:var(--surface-soft); color:var(--ink-soft); border:1px solid var(--border); cursor:pointer;}
+  .day-dot.done{background:var(--primary-tint); color:var(--primary-deep); border-color:transparent;}
+  .day-dot.current{background:var(--primary); color:#fff; border-color:transparent;}
+  .day-dot.customized{box-shadow:inset 0 -3px 0 var(--accent);}
+  .day-dot.selected{outline:2px solid var(--accent); outline-offset:1px;}
+  .progress-hint{font-size:11px; color:var(--ink-soft); margin-bottom:14px;}
+  .section-label{font-size:12px; color:var(--ink-soft); margin:16px 0 8px; letter-spacing:.02em;}
+  .mood-options{display:flex; gap:8px; flex-wrap:wrap;}
+  .mood-btn{border:1px solid var(--border); background:var(--surface-soft); border-radius:var(--radius-sm); padding:8px 12px; font-size:12.5px; cursor:pointer; color:var(--ink); display:flex; gap:6px; align-items:center;}
+  .mood-btn.selected{background:var(--primary); color:#fff; border-color:transparent;}
+  .task-item{display:flex; align-items:flex-start; gap:6px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13.5px;}
+  .task-item[data-sid]{touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  .task-item:last-child{border-bottom:none;}
+  .task-item.dragging{opacity:.85; box-shadow:0 6px 14px rgba(36,50,40,.15); background:var(--surface); border-radius:8px;}
+  .task-item-inner{display:flex; align-items:flex-start; gap:10px; flex:1; min-width:0; cursor:pointer;}
+  .task-item input{margin-top:3px; width:17px; height:17px; accent-color:var(--primary); cursor:pointer;}
+  .task-item.done span{color:var(--ink-soft); text-decoration:line-through;}
+  .task-item-del{background:none; border:none; color:var(--accent); font-size:15px; cursor:pointer; padding:2px 4px; flex-shrink:0; align-self:flex-start;}
+  .inline-add-row{display:flex; gap:8px; margin-top:12px;}
+  .inline-add-row input{flex:1; min-width:0; padding:9px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-soft); color:var(--ink); font-size:13px; font-family:var(--font-body);}
+  .inline-add-row button{border:none; background:var(--primary); color:#fff; border-radius:var(--radius-sm); width:36px; font-size:16px; cursor:pointer; flex-shrink:0;}
+  .task-tag{font-size:10.5px; padding:2px 7px; border-radius:6px; background:var(--success-tint); color:var(--success); flex-shrink:0; margin-top:1px;}
+  .task-tag.side{background:var(--primary-tint); color:var(--primary-deep);}
+
+  .field{margin-bottom:13px;}
+  .field label{display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:5px;}
+  .field input[type="text"], .field input[type="number"], .field input[type="date"]{
+    width:100%; padding:10px 11px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface); color:var(--ink); font-size:13.5px; font-family:var(--font-body);
+  }
+  .side-task-row{display:flex; gap:8px; margin-bottom:7px;}
+  .side-task-row input{flex:1;}
+  .side-task-row button{border:none; background:var(--surface-soft); border-radius:var(--radius-sm); width:34px; color:var(--accent); font-size:15px; cursor:pointer;}
+  .add-side-btn{background:none; border:1px dashed var(--border); color:var(--ink-soft); border-radius:var(--radius-sm); padding:8px; width:100%; font-size:12.5px; cursor:pointer; margin-bottom:12px;}
+
+  .cal-header{display:flex; align-items:center; justify-content:space-between; margin-top:2px;}
+  .cal-header h2{font-family:var(--font-display); font-size:16px; margin:0;}
+  .cal-nav{display:flex; gap:6px;}
+  .cal-nav button{border:1px solid var(--border); background:var(--surface-soft); border-radius:8px; width:28px; height:28px; font-size:14px; cursor:pointer; color:var(--ink);}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:10px;}
+  .cal-dow{text-align:center; font-size:10.5px; color:var(--ink-soft); padding-bottom:4px;}
+  .cal-cell{aspect-ratio:1; border-radius:9px; background:var(--surface); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11.5px; cursor:pointer; gap:1px; overflow:hidden;}
+  .cal-cell.blank{background:transparent; border:none; cursor:default;}
+  .cal-cell.has-record{background:var(--primary-tint); border-color:transparent;}
+  .cal-cell.today{outline:2px solid var(--primary); outline-offset:-2px;}
+  .cal-cell .theme-mini{font-size:9px; font-weight:700; color:var(--primary-deep); line-height:1;}
+  .theme-badges{display:flex; flex-direction:row; gap:2px;}
+  .cal-detail{margin-top:14px; background:var(--surface); border-radius:var(--radius-md); padding:15px; box-shadow:var(--shadow); font-size:13px; display:none;}
+  .cal-detail.show{display:block;}
+  .cal-detail-block{margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--border);}
+  .cal-detail-block:last-child{margin-bottom:0; padding-bottom:0; border-bottom:none;}
+  .cal-detail-activity{font-weight:700; margin-bottom:8px;}
+  .tl-row{display:flex; gap:10px; padding:5px 0; font-size:12.5px; align-items:flex-start;}
+  .tl-time{color:var(--primary-deep); font-weight:700; flex-shrink:0; width:44px;}
+  .tl-labels{color:var(--ink-soft);}
+  .tl-labels-stack div{color:var(--ink-soft); padding:1px 0;}
+
+  .activity-row{background:var(--surface); border-radius:var(--radius-md); padding:13px; margin-bottom:9px; display:flex; justify-content:space-between; align-items:center; gap:10px; box-shadow:var(--shadow); flex-wrap:wrap;}
+  .activity-row .name{font-weight:600; font-size:13.5px;}
+  .activity-row .meta{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .activity-row .actions{display:flex; gap:6px; flex-wrap:wrap;}
+  hr.divider{border:none; border-top:1px solid var(--border); margin:20px 0;}
+
+  .overlay{position:fixed; inset:0; background:rgba(20,25,20,.5); display:none; align-items:center; justify-content:center; padding:18px; z-index:60;}
+  .overlay.show{display:flex;}
+  .overlay-card{background:var(--surface); border-radius:var(--radius-lg); padding:20px; width:100%; max-width:420px; max-height:88vh; overflow-y:auto; box-shadow:var(--shadow);}
+  .overlay-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px;}
+  .overlay-head h3{font-family:var(--font-display); font-size:15.5px; margin:0;}
+  .overlay-head button{border:none; background:none; font-size:20px; color:var(--ink-soft); cursor:pointer; line-height:1;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="sidebar-drawer" id="sidebarDrawer">
+    <div class="drawer-head"><span>🧪 實驗室</span><button id="closeDrawer">×</button></div>
+    <div id="sidebarDrawerItems"></div>
+  </div>
+
+  <main class="main-area">
+    <div class="top-row">
+      <button class="rail-toggle" id="drawerToggle">≡</button>
+      <span class="page-brand">🧪 實驗室</span>
+    </div>
+
+    <section id="view-routine" class="view"></section>
+
+    <section id="view-checkin" class="view active">
+      <div class="checkin-header">
+        <select id="activitySelect"></select>
+        <div class="new-wrap">
+          <button class="btn secondary small" id="newActBtn">+ 新增</button>
+          <div class="new-popover" id="newPopover">
+            <div class="field"><label>活動名稱</label><input type="text" id="newName"></div>
+            <div class="field"><label>總天數</label><input type="number" id="newDays" min="1" max="60" value="7"></div>
+            <div class="field"><label>開始日期</label><input type="date" id="newStartDate"></div>
+            <div class="field"><label>主線任務</label><input type="text" id="newMain"></div>
+            <div id="sideTaskRows"></div>
+            <button class="add-side-btn" id="addSideBtn">+ 新增支線任務</button>
+            <button class="btn block" id="createBtn">建立並開始</button>
+          </div>
+        </div>
+      </div>
+      <div id="checkinBody"></div>
+      <hr class="divider">
+      <div class="section-label" style="margin-top:0;">所有進行中的主題週</div>
+      <div id="checkinActivityList"></div>
+    </section>
+
+    <section id="view-calendar" class="view"></section>
+    <section id="view-archive" class="view"></section>
+  </main>
+</div>
+
+<div class="overlay" id="dayOverlay">
+  <div class="overlay-card">
+    <div class="overlay-head"><h3 id="dayOverlayTitle">調整這一天</h3><button id="closeDayOverlay">×</button></div>
+    <div class="field"><label>選擇日期(限活動天數範圍內,可任意跳選)</label><input type="date" id="dayDateInput"></div>
+    <div class="section-label" style="margin-top:0;">場景</div>
+    <div class="mood-options" id="dayMoodOptions"></div>
+    <div class="section-label">主線 / 支線完成狀態(可直接補打卡)</div>
+    <div class="task-list" id="dayTaskList"></div>
+    <div class="section-label">調整任務文字(只影響這一天)</div>
+    <div class="field"><label>主線任務</label><input type="text" id="dayMainInput"></div>
+    <div id="daySideRows"></div>
+    <button class="add-side-btn" id="dayAddSideBtn">+ 新增支線任務</button>
+    <button class="btn block" id="daySaveTextBtn">儲存任務文字(僅這一天)</button>
+  </div>
+</div>
+
+<div class="overlay" id="confirmOverlay">
+  <div class="overlay-card" style="max-width:320px;">
+    <div class="overlay-head"><h3>確定刪除?</h3><button id="closeConfirmOverlay">×</button></div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 16px;">這個活動及其打卡記錄刪除後無法復原。</p>
+    <div style="display:flex; gap:8px;">
+      <button class="btn secondary block" id="cancelConfirmBtn">取消</button>
+      <button class="btn block" id="confirmDeleteBtn" style="background:var(--accent);">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="editStartOverlay">
+  <div class="overlay-card" style="max-width:320px;">
+    <div class="overlay-head"><h3>調整日期與天數</h3><button id="closeEditStartOverlay">×</button></div>
+    <div class="field"><label>開始日期</label><input type="date" id="editStartDateInput"></div>
+    <div class="field"><label>總天數</label><input type="number" id="editStartDaysInput" min="1" max="60"></div>
+    <button class="btn block" id="saveEditStartBtn">儲存</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "checkinLabData_v5";
+  var MOODS = [
+    {id:"sun", emoji:"☀️", label:"晴"}, {id:"cloud", emoji:"☁️", label:"陰"},
+    {id:"rain", emoji:"🌧️", label:"暴雨"}, {id:"low", emoji:"🫠", label:"低迷"},
+    {id:"dim", emoji:"🕯️", label:"微光"}, {id:"fire", emoji:"🔥", label:"燃起"}
+  ];
+  var QUAD_COLORS = ["var(--quad-1)","var(--quad-2)","var(--quad-3)","var(--quad-4)"];
+  var NAV_ITEMS = [
+    {tab:"routine", label:"日常"},
+    {tab:"checkin", label:"打卡"},
+    {tab:"calendar", label:"月曆"},
+    {tab:"archive", label:"封存"}
+  ];
+  var currentTab = "checkin";
+
+  function loadData(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return {activities:[], activeId:null, records:{}, routine:null};
+      var parsed = JSON.parse(raw);
+      parsed.activities = parsed.activities || [];
+      parsed.records = parsed.records || {};
+      return parsed;
+    }catch(e){ return {activities:[], activeId:null, records:{}, routine:null}; }
+  }
+  function saveData(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){} }
+  var data = loadData();
+
+  function todayStr(){ return fmt(new Date()); }
+  function fmt(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function addDays(dateStr, n){ var d=new Date(dateStr+"T00:00:00"); d.setDate(d.getDate()+n); return fmt(d); }
+  function diffDays(dateStr, startStr){
+    var a=new Date(dateStr+"T00:00:00"), b=new Date(startStr+"T00:00:00");
+    return Math.round((a-b)/86400000);
+  }
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; });
+  }
+  function themeChar(act){
+    if(!act || !act.name) return "幕";
+    var t = act.name.trim();
+    return t ? t.charAt(0) : "幕";
+  }
+  function nowTimeStr(){
+    var d = new Date();
+    return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+
+  function getActive(){ return data.activities.find(function(a){ return a.id===data.activeId; }) || null; }
+  function currentDayIndex(act){
+    if(!act) return 0;
+    var idx = diffDays(todayStr(), act.startDate)+1;
+    if(idx<1) idx=1; if(idx>act.totalDays) idx=act.totalDays;
+    return idx;
+  }
+  function getTasksForDate(act, dateStr){
+    var o = (act.taskOverrides||{})[dateStr];
+    return o ? o : {mainTask:act.mainTask, sideTasks:act.sideTasks};
+  }
+  function ensureOverrideForDate(act, dateStr){
+    act.taskOverrides = act.taskOverrides || {};
+    if(!act.taskOverrides[dateStr]){
+      var base = getTasksForDate(act, dateStr);
+      act.taskOverrides[dateStr] = {
+        mainTask: base.mainTask,
+        sideTasks: base.sideTasks.map(function(t){ return {id:t.id, text:t.text}; })
+      };
+    }
+    return act.taskOverrides[dateStr];
+  }
+  function ensureRecordShape(act, rec, dateStr){
+    var tasks = getTasksForDate(act, dateStr);
+    rec.sideDone = rec.sideDone || {};
+    tasks.sideTasks.forEach(function(t){ if(!(t.id in rec.sideDone)) rec.sideDone[t.id] = null; });
+    if(typeof rec.mood === "undefined") rec.mood = null;
+    if(typeof rec.mainDone === "undefined") rec.mainDone = null;
+    return rec;
+  }
+  function getRecord(act, dateStr){
+    data.records[act.id] = data.records[act.id] || {};
+    var rec = data.records[act.id][dateStr];
+    if(!rec){ rec = {mood:null, mainDone:null, sideDone:{}}; data.records[act.id][dateStr] = rec; }
+    ensureRecordShape(act, rec, dateStr);
+    return rec;
+  }
+  function isDayComplete(act, rec, dateStr){
+    var tasks = getTasksForDate(act, dateStr);
+    if(!rec.mainDone) return false;
+    for(var i=0;i<tasks.sideTasks.length;i++){ if(!rec.sideDone[tasks.sideTasks[i].id]) return false; }
+    return true;
+  }
+  function effectiveMainDone(act, dateStr){
+    var recsForAct = data.records[act.id] || {};
+    var dates = Object.keys(recsForAct).filter(function(d){ return d <= dateStr; }).sort();
+    for(var i=dates.length-1; i>=0; i--){
+      var r = recsForAct[dates[i]];
+      if(r && typeof r.mainDone !== "undefined" && r.mainDone !== null) return r.mainDone;
+    }
+    return null;
+  }
+  function effectiveSideDone(act, dateStr, taskId){
+    var recsForAct = data.records[act.id] || {};
+    var dates = Object.keys(recsForAct).filter(function(d){ return d <= dateStr; }).sort();
+    for(var i=dates.length-1; i>=0; i--){
+      var r = recsForAct[dates[i]];
+      if(r && r.sideDone && typeof r.sideDone[taskId] !== "undefined" && r.sideDone[taskId] !== null) return r.sideDone[taskId];
+    }
+    return null;
+  }
+  function hasRealRecord(act, dateStr){
+    var rec = data.records[act.id] && data.records[act.id][dateStr];
+    if(!rec) return false;
+    if(rec.mainDone) return true;
+    if(rec.mood) return true;
+    if(rec.sideDone){ for(var k in rec.sideDone){ if(rec.sideDone[k]) return true; } }
+    return false;
+  }
+  function buildDayEntries(act, rec, dateStr){
+    var tasks = getTasksForDate(act, dateStr);
+    var raw = [];
+    if(rec.mainDone) raw.push({time:rec.mainDone.at, label:tasks.mainTask});
+    tasks.sideTasks.forEach(function(t){
+      var sd = rec.sideDone[t.id];
+      if(sd) raw.push({time:sd.at, label:"支線·"+t.text});
+    });
+    if(rec.mood){
+      var m = MOODS.find(function(mm){ return mm.id===rec.mood.id; });
+      raw.push({time:rec.mood.at, label:(m ? m.emoji+" "+m.label : "")});
+    }
+    var map = {};
+    raw.forEach(function(r){ map[r.time]=map[r.time]||[]; map[r.time].push(r.label); });
+    return Object.keys(map).sort().map(function(t){ return {time:t, labels:map[t]}; });
+  }
+
+  function enableLongPressReorder(containerEl, rowSelector, handleSelector, getList, onReordered){
+    var LONG_PRESS_MS = 380, MOVE_CANCEL_PX = 14;
+    containerEl.querySelectorAll(handleSelector).forEach(function(handle){
+      var row = handle.closest(rowSelector);
+      if(!row) return;
+      var pressTimer = null, dragging = false, startY = 0, rowHeight = 0, startIndex = -1, pid = null;
+
+      handle.addEventListener("pointerdown", function(e){
+        startY = e.clientY;
+        pid = e.pointerId;
+        var rows = Array.prototype.slice.call(containerEl.querySelectorAll(rowSelector));
+        startIndex = rows.indexOf(row);
+        rowHeight = row.offsetHeight + 6;
+        pressTimer = setTimeout(function(){
+          dragging = true;
+          try{ row.setPointerCapture(pid); }catch(err){}
+          row.classList.add("dragging");
+        }, LONG_PRESS_MS);
+      });
+      handle.addEventListener("pointermove", function(e){
+        if(dragging){
+          var dy = e.clientY - startY;
+          row.style.transform = "translateY("+dy+"px)";
+          row.style.position = "relative";
+          row.style.zIndex = 5;
+        } else if(pressTimer && Math.abs(e.clientY-startY) > MOVE_CANCEL_PX){
+          clearTimeout(pressTimer); pressTimer = null;
+        }
+      });
+      function endDrag(e){
+        if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+        if(!dragging) return;
+        dragging = false;
+        row.classList.remove("dragging");
+        var dy = e.clientY - startY;
+        row.style.transform = ""; row.style.position = ""; row.style.zIndex = "";
+        var offset = Math.round(dy / rowHeight);
+        var list = getList();
+        var newIndex = Math.max(0, Math.min(list.length-1, startIndex + offset));
+        if(newIndex !== startIndex){
+          var moved = list.splice(startIndex, 1)[0];
+          list.splice(newIndex, 0, moved);
+          onReordered();
+        }
+      }
+      handle.addEventListener("pointerup", endDrag);
+      handle.addEventListener("pointercancel", endDrag);
+    });
+  }
+
+  function ensureRoutine(){
+    if(!data.routine){
+      data.routine = {
+        quadrants: [0,1,2,3].map(function(){ return {id:uid(), name:"", timeRange:"", items:[]}; }),
+        lastResetDate: todayStr()
+      };
+    }
+    if(data.routine.lastResetDate !== todayStr()){
+      data.routine.quadrants.forEach(function(q){ q.items.forEach(function(it){ it.checked=false; }); });
+      data.routine.lastResetDate = todayStr();
+      saveData(data);
+    }
+  }
+
+  function renderNav(){
+    document.getElementById("sidebarDrawerItems").innerHTML = NAV_ITEMS.map(function(item){
+      return '<button class="side-item drawer-item" data-tab="'+item.tab+'">'+item.label+'</button>';
+    }).join("");
+    document.querySelectorAll(".drawer-item").forEach(function(b){
+      b.onclick = function(){ switchTab(b.dataset.tab); closeDrawer(); };
+    });
+    updateActiveNav();
+  }
+  function updateActiveNav(){
+    document.querySelectorAll(".drawer-item").forEach(function(b){
+      b.classList.toggle("active", b.dataset.tab === currentTab);
+    });
+  }
+  function openDrawer(){ document.getElementById("sidebarDrawer").classList.add("show"); document.getElementById("sidebarBackdrop").classList.add("show"); }
+  function closeDrawer(){ document.getElementById("sidebarDrawer").classList.remove("show"); document.getElementById("sidebarBackdrop").classList.remove("show"); }
+  document.getElementById("drawerToggle").onclick = openDrawer;
+  document.getElementById("closeDrawer").onclick = closeDrawer;
+  document.getElementById("sidebarBackdrop").onclick = closeDrawer;
+
+  function switchTab(tab){
+    currentTab = tab;
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+    document.getElementById("view-"+tab).classList.add("active");
+    updateActiveNav();
+  }
+
+  function renderRoutine(){
+    ensureRoutine();
+    var el = document.getElementById("view-routine");
+    var cards = data.routine.quadrants.map(function(q, qi){
+      var checkedCount = q.items.filter(function(it){ return it.checked; }).length;
+      var remaining = q.items.length - checkedCount;
+      var itemsHtml = q.items.map(function(it){
+        return '<div class="rc-item'+(it.checked?" checked":"")+'" data-iid="'+it.id+'">'+
+          '<label class="rc-item-inner">'+
+            '<input type="checkbox" data-qi="'+qi+'" data-iid="'+it.id+'" '+(it.checked?"checked":"")+'>'+
+            '<span>'+escapeHtml(it.text)+'</span>'+
+          '</label>'+
+          '<button data-delitem="'+qi+':'+it.id+'">×</button></div>';
+      }).join("");
+      return '<div class="routine-card" style="background:'+QUAD_COLORS[qi % QUAD_COLORS.length]+'">'+
+        '<div class="rc-head-row"><div style="flex:1;">'+
+          '<input class="rc-name" data-qi="'+qi+'" placeholder="時段名稱,例如:早" value="'+escapeHtml(q.name)+'">'+
+          '<input class="rc-time" data-qi="'+qi+'" placeholder="時間範圍,例如:6:30-8:30" value="'+escapeHtml(q.timeRange)+'">'+
+        '</div><span class="rc-badge">'+remaining+'</span></div>'+
+        '<div class="rc-items">'+itemsHtml+'</div>'+
+        '<div class="rc-add-row"><input type="text" data-addinput="'+qi+'" placeholder="+ 新任務,按 Enter 新增"><button data-addbtn="'+qi+'">+</button></div>'+
+      '</div>';
+    }).join("");
+
+    el.innerHTML =
+      '<div class="routine-intro">在時間段的事件裡擇一完成即可,不用全部打勾。</div>'+
+      '<div class="routine-grid">'+cards+'</div>';
+
+    el.querySelectorAll('.rc-name').forEach(function(inp){
+      inp.oninput = function(){ data.routine.quadrants[inp.dataset.qi].name = inp.value; saveData(data); };
+    });
+    el.querySelectorAll('.rc-time').forEach(function(inp){
+      inp.oninput = function(){ data.routine.quadrants[inp.dataset.qi].timeRange = inp.value; saveData(data); };
+    });
+    el.querySelectorAll('.rc-item input[type="checkbox"]').forEach(function(cb){
+      cb.onchange = function(){
+        var q = data.routine.quadrants[cb.dataset.qi];
+        var it = q.items.find(function(i){ return i.id === cb.dataset.iid; });
+        it.checked = cb.checked;
+        saveData(data); renderRoutine();
+      };
+    });
+    el.querySelectorAll('[data-delitem]').forEach(function(b){
+      b.onclick = function(){
+        var parts = b.dataset.delitem.split(":");
+        var q = data.routine.quadrants[parts[0]];
+        q.items = q.items.filter(function(i){ return i.id !== parts[1]; });
+        saveData(data); renderRoutine();
+      };
+    });
+    function addItem(qi){
+      var input = el.querySelector('[data-addinput="'+qi+'"]');
+      var val = input.value.trim();
+      if(!val) return;
+      data.routine.quadrants[qi].items.push({id:uid(), text:val, checked:false});
+      saveData(data); renderRoutine();
+    }
+    el.querySelectorAll('[data-addbtn]').forEach(function(b){ b.onclick = function(){ addItem(b.dataset.addbtn); }; });
+    el.querySelectorAll('[data-addinput]').forEach(function(inp){
+      inp.onkeydown = function(e){ if(e.key === "Enter"){ e.preventDefault(); addItem(inp.dataset.addinput); } };
+    });
+    el.querySelectorAll(".routine-card").forEach(function(card, qi){
+      enableLongPressReorder(card, ".rc-item", ".rc-item", function(){ return data.routine.quadrants[qi].items; }, function(){ saveData(data); renderRoutine(); });
+    });
+  }
+
+  function renderSwitcher(){
+    var sel = document.getElementById("activitySelect");
+    sel.innerHTML = "";
+    var activeAct = getActive();
+    var visible = data.activities.filter(function(a){ return !a.archived; });
+    if(activeAct && activeAct.archived){
+      var opt0 = document.createElement("option");
+      opt0.value = activeAct.id; opt0.textContent = "(封存查看) "+activeAct.name; opt0.selected = true;
+      sel.appendChild(opt0);
+    }
+    if(visible.length === 0 && !(activeAct && activeAct.archived)){
+      var opt = document.createElement("option"); opt.textContent = "還沒有活動"; sel.appendChild(opt);
+      return;
+    }
+    visible.forEach(function(a){
+      var opt = document.createElement("option");
+      opt.value = a.id; opt.textContent = a.name;
+      if(a.id === data.activeId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = function(){ data.activeId = sel.value; checkinSelectedDate = null; saveData(data); renderAll(); };
+  }
+
+  var newSideDraft = [];
+  function renderNewSideRows(){
+    var wrap = document.getElementById("sideTaskRows");
+    wrap.innerHTML = newSideDraft.map(function(t,i){
+      return '<div class="side-task-row"><input type="text" data-nidx="'+i+'" value="'+escapeHtml(t)+'" placeholder="支線任務 '+(i+1)+'">'+
+        '<button data-nremove="'+i+'">×</button></div>';
+    }).join("");
+    wrap.querySelectorAll("input").forEach(function(inp){ inp.oninput=function(){ newSideDraft[inp.dataset.nidx]=inp.value; }; });
+    wrap.querySelectorAll("[data-nremove]").forEach(function(b){ b.onclick=function(){ newSideDraft.splice(Number(b.dataset.nremove),1); renderNewSideRows(); }; });
+  }
+  document.getElementById("newActBtn").onclick = function(){
+    document.getElementById("newPopover").classList.toggle("show");
+    var startInput = document.getElementById("newStartDate");
+    if(!startInput.value){ startInput.value = todayStr(); }
+  };
+  document.getElementById("addSideBtn").onclick = function(){ newSideDraft.push(""); renderNewSideRows(); };
+  document.getElementById("createBtn").onclick = function(){
+    var name = document.getElementById("newName").value.trim();
+    var days = parseInt(document.getElementById("newDays").value, 10);
+    var main = document.getElementById("newMain").value.trim();
+    var startDate = document.getElementById("newStartDate").value || todayStr();
+    if(!name || !main || !days || days < 1){ alert("請填寫活動名稱、總天數和主線任務。"); return; }
+    var sideTasks = newSideDraft.filter(function(t){ return t && t.trim(); }).map(function(t){ return {id:uid(), text:t.trim()}; });
+    var act = {id:uid(), name:name, totalDays:days, mainTask:main, sideTasks:sideTasks, taskOverrides:{}, archived:false, hiddenFromCalendar:false, startDate:startDate};
+    data.activities.push(act);
+    data.activeId = act.id;
+    checkinSelectedDate = null;
+    newSideDraft = [];
+    document.getElementById("newName").value = ""; document.getElementById("newMain").value = ""; document.getElementById("newDays").value = "7";
+    document.getElementById("newStartDate").value = todayStr();
+    renderNewSideRows();
+    saveData(data);
+    document.getElementById("newPopover").classList.remove("show");
+    renderAll();
+  };
+  renderNewSideRows();
+  document.getElementById("newStartDate").value = todayStr();
+
+  var checkinSelectedDate = null;
+  function renderCheckin(){
+    renderSwitcher();
+    var el = document.getElementById("checkinBody");
+    var act = getActive();
+    if(!act){
+      el.innerHTML = '<div class="empty-state"><div style="font-size:30px;">🎬</div>'+
+        '<p>還沒有打卡活動。<br>點右上角「+ 新增」建立一個屬於你的活動週吧。</p></div>';
+      return;
+    }
+    var dayIdx = currentDayIndex(act);
+    var percent = Math.round((dayIdx/act.totalDays)*100);
+    var naturalDate = addDays(act.startDate, dayIdx-1);
+    if(!checkinSelectedDate || diffDays(checkinSelectedDate, act.startDate) < 0 || diffDays(checkinSelectedDate, act.startDate) > act.totalDays-1){
+      checkinSelectedDate = naturalDate;
+    }
+    var dateStr = checkinSelectedDate;
+    var selectedDayIdx = diffDays(dateStr, act.startDate)+1;
+    var rec = getRecord(act, dateStr);
+    var tasks = getTasksForDate(act, dateStr);
+    saveData(data);
+
+    var dotsHtml = "";
+    for(var i=1;i<=act.totalDays;i++){
+      var dotDate = addDays(act.startDate, i-1);
+      var cls = "day-dot";
+      if(i===dayIdx) cls += " current"; else if(i<dayIdx) cls += " done";
+      if(dotDate === dateStr) cls += " selected";
+      if((act.taskOverrides||{})[dotDate]) cls += " customized";
+      dotsHtml += '<div class="'+cls+'" data-dotdate="'+dotDate+'">'+i+'</div>';
+    }
+    var moodHtml = MOODS.map(function(m){
+      var sel = rec.mood && rec.mood.id===m.id ? " selected" : "";
+      return '<button class="mood-btn'+sel+'" data-mood="'+m.id+'">'+m.emoji+' '+m.label+'</button>';
+    }).join("");
+    var mainEff = effectiveMainDone(act, dateStr);
+    var tasksHtml = '<div class="task-item'+(mainEff?" done":"")+'">'+
+      '<label class="task-item-inner">'+
+        '<input type="checkbox" data-role="main" '+(mainEff?"checked":"")+'>'+
+        '<span class="task-tag">主線</span><span>'+escapeHtml(tasks.mainTask)+'</span>'+
+      '</label></div>';
+    tasks.sideTasks.forEach(function(t){
+      var done = effectiveSideDone(act, dateStr, t.id);
+      tasksHtml += '<div class="task-item'+(done?" done":"")+'" data-sid="'+t.id+'">'+
+        '<label class="task-item-inner">'+
+          '<input type="checkbox" data-role="side" data-id="'+t.id+'" '+(done?"checked":"")+'>'+
+          '<span class="task-tag side">支線</span><span>'+escapeHtml(t.text)+'</span>'+
+        '</label>'+
+        '<button class="task-item-del" data-delside="'+t.id+'">×</button></div>';
+    });
+
+    el.innerHTML =
+      '<div class="checkin-card">'+
+        '<div class="checkin-title">'+escapeHtml(act.name)+'</div>'+
+        '<div class="checkin-sub">第 '+selectedDayIdx+' / '+act.totalDays+' 天 · '+dateStr+'</div>'+
+        '<div class="progress-track"><div class="progress-fill" style="width:'+percent+'%"></div></div>'+
+        '<div class="progress-days">'+dotsHtml+'</div>'+
+        '<div class="progress-hint">點日期可以直接看那一天的場景與任務,補打卡或調整都在這裡</div>'+
+        '<div class="section-label">當天的場景</div><div class="mood-options">'+moodHtml+'</div>'+
+        '<div class="section-label">主線 / 支線</div><div class="task-list">'+tasksHtml+'</div>'+
+        '<div class="inline-add-row"><input type="text" id="checkinNewSideInput" placeholder="+ 新增支線任務,按 Enter 新增"><button id="checkinAddSideBtn">+</button></div>'+
+      '</div>';
+
+    el.querySelectorAll(".mood-btn").forEach(function(btn){
+      btn.onclick = function(){
+        rec.mood = (rec.mood && rec.mood.id===btn.dataset.mood) ? null : {id:btn.dataset.mood, at:nowTimeStr()};
+        saveData(data); renderCheckin(); renderCalendar();
+      };
+    });
+    el.querySelectorAll('.task-item input[type="checkbox"]').forEach(function(cb){
+      cb.onchange = function(){
+        if(cb.dataset.role === "main"){ rec.mainDone = cb.checked ? {at:nowTimeStr()} : false; }
+        else { rec.sideDone[cb.dataset.id] = cb.checked ? {at:nowTimeStr()} : false; }
+        saveData(data); renderCheckin(); renderCalendar();
+      };
+    });
+    el.querySelectorAll('[data-delside]').forEach(function(b){
+      b.onclick = function(){
+        var ov = ensureOverrideForDate(act, dateStr);
+        ov.sideTasks = ov.sideTasks.filter(function(t){ return t.id !== b.dataset.delside; });
+        saveData(data); renderCheckin();
+      };
+    });
+    function addSideInline(){
+      var input = document.getElementById("checkinNewSideInput");
+      var val = input.value.trim();
+      if(!val) return;
+      var ov = ensureOverrideForDate(act, dateStr);
+      ov.sideTasks.push({id:uid(), text:val});
+      saveData(data); renderCheckin();
+    }
+    document.getElementById("checkinAddSideBtn").onclick = addSideInline;
+    document.getElementById("checkinNewSideInput").onkeydown = function(e){ if(e.key === "Enter"){ e.preventDefault(); addSideInline(); } };
+    el.querySelectorAll('.day-dot').forEach(function(dot){
+      dot.onclick = function(){ checkinSelectedDate = dot.dataset.dotdate; renderCheckin(); };
+    });
+    enableLongPressReorder(el, ".task-item[data-sid]", ".task-item[data-sid]", function(){ return tasks.sideTasks; }, function(){ saveData(data); renderCheckin(); });
+  }
+
+  var dayEditorAct = null, dayEditorDate = null, dayDraftSide = [];
+  function openDayEditor(act, dateStr){
+    dayEditorAct = act; dayEditorDate = dateStr;
+    var dateInput = document.getElementById("dayDateInput");
+    dateInput.min = act.startDate; dateInput.max = addDays(act.startDate, act.totalDays-1);
+    dateInput.value = dateStr;
+    loadDayEditorContent();
+    document.getElementById("dayOverlay").classList.add("show");
+  }
+  function loadDayEditorContent(){
+    var act = dayEditorAct, d = dayEditorDate;
+    var dayIdx = diffDays(d, act.startDate)+1;
+    document.getElementById("dayOverlayTitle").textContent = act.name+" · 第"+dayIdx+"天 · "+d;
+    var rec = getRecord(act, d);
+    var tasks = getTasksForDate(act, d);
+    document.getElementById("dayMoodOptions").innerHTML = MOODS.map(function(m){
+      var sel = rec.mood && rec.mood.id===m.id ? " selected" : "";
+      return '<button class="mood-btn'+sel+'" data-mood="'+m.id+'">'+m.emoji+' '+m.label+'</button>';
+    }).join("");
+    var mainEff = effectiveMainDone(act, d);
+    var taskListHtml = '<label class="task-item'+(mainEff?" done":"")+'">'+
+      '<input type="checkbox" id="dayMainCb" '+(mainEff?"checked":"")+'>'+
+      '<span class="task-tag">主線</span><span>'+escapeHtml(tasks.mainTask)+'</span></label>';
+    tasks.sideTasks.forEach(function(t){
+      var done = effectiveSideDone(act, d, t.id);
+      taskListHtml += '<label class="task-item'+(done?" done":"")+'">'+
+        '<input type="checkbox" data-sid="'+t.id+'" '+(done?"checked":"")+'>'+
+        '<span class="task-tag side">支線</span><span>'+escapeHtml(t.text)+'</span></label>';
+    });
+    document.getElementById("dayTaskList").innerHTML = taskListHtml;
+    document.getElementById("dayMainInput").value = tasks.mainTask;
+    dayDraftSide = tasks.sideTasks.map(function(t){ return {id:t.id, text:t.text}; });
+    renderDaySideRows();
+
+    document.querySelectorAll("#dayMoodOptions .mood-btn").forEach(function(btn){
+      btn.onclick = function(){
+        var r = getRecord(dayEditorAct, dayEditorDate);
+        r.mood = (r.mood && r.mood.id===btn.dataset.mood) ? null : {id:btn.dataset.mood, at:nowTimeStr()};
+        saveData(data); loadDayEditorContent(); renderCheckin(); renderCalendar();
+      };
+    });
+    var mainCb = document.getElementById("dayMainCb");
+    mainCb.onchange = function(){
+      var r = getRecord(dayEditorAct, dayEditorDate);
+      r.mainDone = mainCb.checked ? {at:nowTimeStr()} : false;
+      saveData(data); loadDayEditorContent(); renderCheckin(); renderCalendar();
+    };
+    document.querySelectorAll('#dayTaskList input[data-sid]').forEach(function(cb){
+      cb.onchange = function(){
+        var r = getRecord(dayEditorAct, dayEditorDate);
+        r.sideDone[cb.dataset.sid] = cb.checked ? {at:nowTimeStr()} : false;
+        saveData(data); loadDayEditorContent(); renderCheckin(); renderCalendar();
+      };
+    });
+  }
+  function renderDaySideRows(){
+    var wrap = document.getElementById("daySideRows");
+    wrap.innerHTML = dayDraftSide.map(function(t,i){
+      return '<div class="side-task-row"><input type="text" data-di="'+i+'" value="'+escapeHtml(t.text)+'" placeholder="支線任務 '+(i+1)+'">'+
+        '<button data-dremove="'+i+'">×</button></div>';
+    }).join("");
+    wrap.querySelectorAll("input").forEach(function(inp){ inp.oninput = function(){ dayDraftSide[inp.dataset.di].text = inp.value; }; });
+    wrap.querySelectorAll("[data-dremove]").forEach(function(b){ b.onclick = function(){ dayDraftSide.splice(Number(b.dataset.dremove),1); renderDaySideRows(); }; });
+  }
+  document.getElementById("dayDateInput").onchange = function(){
+    if(!this.value) return;
+    dayEditorDate = this.value;
+    loadDayEditorContent();
+  };
+  document.getElementById("dayAddSideBtn").onclick = function(){ dayDraftSide.push({id:uid(), text:""}); renderDaySideRows(); };
+  document.getElementById("daySaveTextBtn").onclick = function(){
+    var mainVal = document.getElementById("dayMainInput").value.trim();
+    if(!mainVal){ alert("請填寫主線任務。"); return; }
+    var sideVal = dayDraftSide.filter(function(t){ return t.text && t.text.trim(); }).map(function(t){ return {id:t.id, text:t.text.trim()}; });
+    dayEditorAct.taskOverrides = dayEditorAct.taskOverrides || {};
+    dayEditorAct.taskOverrides[dayEditorDate] = {mainTask:mainVal, sideTasks:sideVal};
+    saveData(data);
+    renderCheckin(); renderCalendar();
+    document.getElementById("dayOverlay").classList.remove("show");
+  };
+  document.getElementById("closeDayOverlay").onclick = function(){ document.getElementById("dayOverlay").classList.remove("show"); };
+
+  var calCursor = new Date();
+  function visibleForCalendar(){ return data.activities.filter(function(a){ return !a.hiddenFromCalendar; }); }
+  function renderCalendar(){
+    var el = document.getElementById("view-calendar");
+    var acts = visibleForCalendar();
+    var year = calCursor.getFullYear(), month = calCursor.getMonth();
+    var first = new Date(year, month, 1);
+    var startOffset = (first.getDay()+6)%7;
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var dow = ["一","二","三","四","五","六","日"];
+
+    var grid = dow.map(function(d){ return '<div class="cal-dow">'+d+'</div>'; }).join("");
+    for(var i=0;i<startOffset;i++){ grid += '<div class="cal-cell blank"></div>'; }
+    for(var day=1; day<=daysInMonth; day++){
+      var dateStr = year+"-"+String(month+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+      var actsToday = acts.filter(function(a){ return hasRealRecord(a, dateStr); });
+      var cls = "cal-cell";
+      if(actsToday.length) cls += " has-record";
+      if(dateStr === todayStr()) cls += " today";
+      var badge = actsToday.length ? '<div class="theme-badges">'+actsToday.slice(0,2).map(function(a){ return '<span class="theme-mini">'+themeChar(a)+'</span>'; }).join("")+'</div>' : "";
+      grid += '<div class="'+cls+'" data-date="'+dateStr+'">'+day+badge+'</div>';
+    }
+
+    el.innerHTML =
+      (acts.length===0 ? '<div class="empty-state"><p>還沒有主題週記錄。先去「打卡」建立一個吧。</p></div>' : '') +
+      '<div class="cal-header"><h2>'+year+' 年 '+(month+1)+' 月</h2>'+
+      '<div class="cal-nav"><button id="calPrev">‹</button><button id="calNext">›</button></div></div>'+
+      '<div class="cal-grid">'+grid+'</div>'+
+      '<div class="cal-detail" id="calDetail"></div>';
+
+    document.getElementById("calPrev").onclick = function(){ calCursor.setMonth(calCursor.getMonth()-1); renderCalendar(); };
+    document.getElementById("calNext").onclick = function(){ calCursor.setMonth(calCursor.getMonth()+1); renderCalendar(); };
+    el.querySelectorAll(".cal-cell[data-date]").forEach(function(cell){
+      cell.onclick = function(){
+        var d = cell.dataset.date;
+        var detail = document.getElementById("calDetail");
+        var blocksHtml = "";
+        acts.forEach(function(a){
+          if(!hasRealRecord(a, d)) return;
+          var rec = data.records[a.id][d];
+          var recSafe = ensureRecordShape(a, rec, d);
+          var dayIdx = diffDays(d, a.startDate)+1;
+          var entries = buildDayEntries(a, recSafe, d);
+          var entriesHtml = entries.length
+            ? entries.map(function(e){
+                var labelsHtml = e.labels.length>1
+                  ? '<div class="tl-labels-stack">'+e.labels.map(function(l){ return '<div>'+l+'</div>'; }).join('')+'</div>'
+                  : '<span class="tl-labels">'+e.labels[0]+'</span>';
+                return '<div class="tl-row"><span class="tl-time">'+e.time+'</span>'+labelsHtml+'</div>';
+              }).join("")
+            : '<div class="tl-row"><span class="tl-labels" style="color:var(--ink-soft)">這天還沒有打勾記錄</span></div>';
+          blocksHtml += '<div class="cal-detail-block"><div class="cal-detail-activity">'+themeChar(a)+' '+escapeHtml(a.name)+' · 第'+dayIdx+'天</div>'+entriesHtml+'</div>';
+        });
+        detail.innerHTML = blocksHtml || ('<strong>'+d+'</strong><br><span style="color:var(--ink-soft)">這天沒有任何主題週的打卡記錄。</span>');
+        detail.classList.add("show");
+      };
+    });
+  }
+
+  function renderCheckinActivityList(){
+    var el = document.getElementById("checkinActivityList");
+    var active = data.activities.filter(function(a){ return !a.archived; });
+    var html = "";
+    if(active.length===0){ html += '<div class="empty-state"><p>目前沒有進行中的主題週。</p></div>'; }
+    active.forEach(function(a){
+      html += '<div class="activity-row"><div>'+
+        '<div class="name">'+escapeHtml(a.name)+(a.id===data.activeId?" · 當前":"")+'</div>'+
+        '<div class="meta">共 '+a.totalDays+' 天</div></div>'+
+        '<div class="actions">'+
+          (a.id!==data.activeId ? '<button class="btn secondary small" data-use="'+a.id+'">設為當前</button>' : '')+
+          '<button class="btn ghost" data-editstart="'+a.id+'">調整日期</button>'+
+          '<button class="btn ghost" data-archive="'+a.id+'">封存</button>'+
+          '<button class="btn danger" data-del="'+a.id+'">刪除</button>'+
+        '</div></div>';
+    });
+    el.innerHTML = html;
+    el.querySelectorAll("[data-use]").forEach(function(b){ b.onclick=function(){ data.activeId=b.dataset.use; checkinSelectedDate = null; saveData(data); renderAll(); }; });
+    el.querySelectorAll("[data-editstart]").forEach(function(b){ b.onclick=function(){ openEditStart(b.dataset.editstart); }; });
+    el.querySelectorAll("[data-archive]").forEach(function(b){
+      b.onclick = function(){
+        var a = data.activities.find(function(x){ return x.id===b.dataset.archive; });
+        a.archived = true;
+        if(data.activeId===a.id){ var next=data.activities.find(function(x){ return !x.archived; }); data.activeId = next?next.id:null; }
+        saveData(data); renderAll();
+      };
+    });
+    el.querySelectorAll("[data-del]").forEach(function(b){
+      b.onclick = function(){ openConfirmDelete(b.dataset.del); };
+    });
+  }
+
+  function renderArchive(){
+    var el = document.getElementById("view-archive");
+    var archived = data.activities.filter(function(a){ return a.archived; });
+    var html = "";
+    html += '<div class="section-label" style="margin-top:0;">封存區</div>';
+    if(archived.length===0){ html += '<div class="empty-state"><p>還沒有封存的主題週。</p></div>'; }
+    archived.forEach(function(a){
+      html += '<div class="activity-row"><div>'+
+        '<div class="name">'+escapeHtml(a.name)+'</div>'+
+        '<div class="meta">共 '+a.totalDays+' 天 · 已封存 · 月曆'+(a.hiddenFromCalendar?"已隱藏":"仍顯示")+'</div></div>'+
+        '<div class="actions">'+
+          '<button class="btn secondary small" data-view="'+a.id+'">查看</button>'+
+          '<button class="btn ghost" data-restore="'+a.id+'">恢復</button>'+
+          '<button class="btn ghost" data-togglecal="'+a.id+'">'+(a.hiddenFromCalendar?"在月曆顯示":"從月曆隱藏")+'</button>'+
+          '<button class="btn danger" data-del="'+a.id+'">刪除</button>'+
+        '</div></div>';
+    });
+    el.innerHTML = html;
+
+    el.querySelectorAll("[data-view]").forEach(function(b){ b.onclick=function(){ data.activeId=b.dataset.view; saveData(data); renderAll(); switchTab("calendar"); }; });
+    el.querySelectorAll("[data-restore]").forEach(function(b){
+      b.onclick = function(){ var a=data.activities.find(function(x){ return x.id===b.dataset.restore; }); a.archived=false; saveData(data); renderAll(); };
+    });
+    el.querySelectorAll("[data-togglecal]").forEach(function(b){
+      b.onclick = function(){ var a=data.activities.find(function(x){ return x.id===b.dataset.togglecal; }); a.hiddenFromCalendar=!a.hiddenFromCalendar; saveData(data); renderAll(); };
+    });
+    el.querySelectorAll("[data-del]").forEach(function(b){
+      b.onclick = function(){ openConfirmDelete(b.dataset.del); };
+    });
+  }
+
+  var pendingDeleteId = null;
+  function openConfirmDelete(id){ pendingDeleteId = id; document.getElementById("confirmOverlay").classList.add("show"); }
+  function closeConfirmDelete(){ document.getElementById("confirmOverlay").classList.remove("show"); pendingDeleteId = null; }
+  document.getElementById("closeConfirmOverlay").onclick = closeConfirmDelete;
+  document.getElementById("cancelConfirmBtn").onclick = closeConfirmDelete;
+  document.getElementById("confirmDeleteBtn").onclick = function(){
+    if(!pendingDeleteId) return;
+    data.activities = data.activities.filter(function(a){ return a.id!==pendingDeleteId; });
+    delete data.records[pendingDeleteId];
+    if(data.activeId===pendingDeleteId){ var next=data.activities.find(function(x){ return !x.archived; }); data.activeId=next?next.id:null; }
+    saveData(data);
+    closeConfirmDelete();
+    renderAll();
+  };
+
+  var editStartId = null;
+  function openEditStart(id){
+    editStartId = id;
+    var a = data.activities.find(function(x){ return x.id===id; });
+    document.getElementById("editStartDateInput").value = a.startDate;
+    document.getElementById("editStartDaysInput").value = a.totalDays;
+    document.getElementById("editStartOverlay").classList.add("show");
+  }
+  function closeEditStart(){ document.getElementById("editStartOverlay").classList.remove("show"); editStartId = null; }
+  document.getElementById("closeEditStartOverlay").onclick = closeEditStart;
+  document.getElementById("saveEditStartBtn").onclick = function(){
+    if(!editStartId) return;
+    var v = document.getElementById("editStartDateInput").value;
+    var days = parseInt(document.getElementById("editStartDaysInput").value, 10);
+    if(!v){ alert("請選擇日期。"); return; }
+    if(!days || days<1){ alert("請填寫總天數。"); return; }
+    var a = data.activities.find(function(x){ return x.id===editStartId; });
+    a.startDate = v;
+    a.totalDays = days;
+    saveData(data);
+    closeEditStart();
+    renderAll();
+  };
+
+  function renderAll(){
+    renderNav();
+    renderRoutine();
+    renderCheckin();
+    renderCheckinActivityList();
+    renderCalendar();
+    renderArchive();
+  }
+  renderAll();
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
