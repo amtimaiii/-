@@ -354,6 +354,25 @@
   ];
   var currentTab = "checkin";
 
+  function migrateOldData(){
+    try{
+      if(localStorage.getItem(STORAGE_KEY)) return; // already have data under the current key
+      var bestKey = null, bestVer = -1;
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        var m = k && k.match(/^checkin(?:Lab|Theatre)Data_v(\d+)$/);
+        if(m){
+          var v = parseInt(m[1],10);
+          if(v > bestVer){ bestVer = v; bestKey = k; }
+        }
+      }
+      if(bestKey && bestKey !== STORAGE_KEY){
+        var raw = localStorage.getItem(bestKey);
+        if(raw){ localStorage.setItem(STORAGE_KEY, raw); }
+      }
+    }catch(e){}
+  }
+  migrateOldData();
   function loadData(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -379,6 +398,9 @@
     return Math.round((a-b)/86400000);
   }
   function uid(){ return Math.random().toString(36).slice(2,10); }
+  function splitTasksByComma(str){
+    return String(str).split(/[,，]/).map(function(t){ return t.trim(); }).filter(function(t){ return t; });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; });
   }
@@ -711,7 +733,8 @@
     var main = document.getElementById("newMain").value.trim();
     var startDate = document.getElementById("newStartDate").value || todayStr();
     if(!name || !main || !days || days < 1){ alert("請填寫活動名稱、總天數和主線任務。"); return; }
-    var sideTasks = newSideDraft.filter(function(t){ return t && t.trim(); }).map(function(t){ return {id:uid(), text:t.trim()}; });
+    var sideTasks = [];
+    newSideDraft.forEach(function(t){ splitTasksByComma(t).forEach(function(p){ sideTasks.push({id:uid(), text:p}); }); });
     var act = {id:uid(), name:name, totalDays:days, mainTask:main, sideTasks:sideTasks, taskOverrides:{}, archived:false, hiddenFromCalendar:false, startDate:startDate, weekThemes:{}};
     data.activities.push(act);
     data.activeId = act.id;
@@ -864,10 +887,10 @@
     enableSwipeReveal(el, ".swipe-row");
     function addSideInline(){
       var input = document.getElementById("checkinNewSideInput");
-      var val = input.value.trim();
-      if(!val) return;
+      var pieces = splitTasksByComma(input.value);
+      if(!pieces.length) return;
       var ov = ensureOverrideForDate(act, dateStr);
-      ov.sideTasks.push({id:uid(), text:val});
+      pieces.forEach(function(p){ ov.sideTasks.push({id:uid(), text:p}); });
       saveData(data); renderCheckin();
     }
     document.getElementById("checkinAddSideBtn").onclick = addSideInline;
